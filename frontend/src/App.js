@@ -1,22 +1,23 @@
-import React, { useEffect, useState } from 'react';
+import logo from './logo.svg';
+import './App.css';
 
 function App() {
-  const [employees, setEmployees] = useState([]);
-
-  useEffect(() => {
-    fetch("http://localhost:8000/employees")
-      .then((res) => res.json())
-      .then(setEmployees);
-  }, []);
-
   return (
-    <div>
-      <h1>Liste des employés</h1>
-      <ul>
-        {employees.map((emp) => (
-          <li key={emp.id}>{emp.name} - {emp.role}</li>
-        ))}
-      </ul>
+    <div className="App">
+      <header className="App-header">
+        <img src={logo} className="App-logo" alt="logo" />
+        <p>
+          Edit <code>src/App.js</code> and save to reload.
+        </p>
+        <a
+          className="App-link"
+          href="https://reactjs.org"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Learn React
+        </a>
+      </header>
     </div>
   );
 }
