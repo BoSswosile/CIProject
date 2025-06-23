@@ -1,1 +1,7 @@
 infra/terraform/.terraform
+.codeql-db
+codeql-results-js.sarif
+codeql-results-py.sarif
+scripts/analyze-codeql-results.sh
+scripts/run-codeql.sh
+scripts/setup-codeql.sh
