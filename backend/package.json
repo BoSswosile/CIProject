@@ -7,7 +7,9 @@
     "lint": "flake8 app tests && black --check app tests && isort --check-only app tests",
     "lint:fix": "black app tests && isort app tests",
     "test": "pytest tests/ --cov=app --cov-report=term-missing",
-    "start": "uvicorn app.main:app --reload"
+    "start": "uvicorn app.main:app --reload",
+    "docker:build": "docker build -t cicd-backend .",
+    "docker:run": "docker run -p 8000:8000 cicd-backend"
   },
   "keywords": ["fastapi", "python", "backend"],
   "author": "",

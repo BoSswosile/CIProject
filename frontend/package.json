@@ -18,7 +18,9 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "lint": "eslint src",
-    "lint:fix": "eslint src --fix"
+    "lint:fix": "eslint src --fix",
+    "docker:build": "docker build -t cicd-frontend .",
+    "docker:run": "docker run -p 3000:80 cicd-frontend"
   },
   "eslintConfig": {
     "extends": [
