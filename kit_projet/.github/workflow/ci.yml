@@ -1,0 +1,47 @@
+name: CI Pipeline
+
+on: [push, pull_request]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Lint Frontend
+        run: |
+          cd kit_projet/frontend
+          npm ci
+          npm run lint
+
+      - name: Lint Backend
+        run: |
+          cd kit_projet/backend
+          npm ci
+          npm run lint
+
+      - name: Test Frontend
+        run: |
+          cd kit_projet/frontend
+          npm run test -- --coverage
+
+      - name: Test Backend
+        run: |
+          cd kit_projet/backend
+          npm run test -- --coverage
+
+      # Ajoute ici les étapes pour l'analyse statique (CodeQL/SonarCloud)
+      # Ajoute ici les étapes pour le scan de vulnérabilités (Trivy/Snyk)
+
+      - name: Build Frontend Docker Image
+        run: |
+          cd kit_projet/frontend
+          docker build -t <registry>/frontend:latest .
+
+      - name: Build Backend Docker Image
+        run: |
+          cd kit_projet/backend
+          docker build -t <registry>/backend:latest .
+
+      # Ajoute ici les étapes de login et push vers le container registry
