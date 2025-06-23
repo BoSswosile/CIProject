@@ -9,6 +9,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
       - name: Lint Frontend
         run: |
           cd frontend
@@ -18,7 +30,7 @@ jobs:
       - name: Lint Backend
         run: |
           cd backend
-          npm ci
+          pip install -r requirements.txt -r requirements-dev.txt
           npm run lint
 
       - name: Test Frontend
@@ -29,7 +41,7 @@ jobs:
       - name: Test Backend
         run: |
           cd backend
-          npm run test -- --coverage
+          npm run test
 
       # Ajoute ici les étapes pour l'analyse statique (CodeQL/SonarCloud)
       # Ajoute ici les étapes pour le scan de vulnérabilités (Trivy/Snyk)

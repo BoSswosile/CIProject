@@ -1,0 +1,15 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "FastAPI Backend",
+  "scripts": {
+    "install": "pip install -r requirements.txt -r requirements-dev.txt",
+    "lint": "flake8 app tests && black --check app tests && isort --check-only app tests",
+    "lint:fix": "black app tests && isort app tests",
+    "test": "pytest tests/ --cov=app --cov-report=term-missing",
+    "start": "uvicorn app.main:app --reload"
+  },
+  "keywords": ["fastapi", "python", "backend"],
+  "author": "",
+  "license": "ISC"
+}
