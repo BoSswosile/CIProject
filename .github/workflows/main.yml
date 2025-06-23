@@ -11,24 +11,24 @@ jobs:
 
       - name: Lint Frontend
         run: |
-          cd kit_projet/frontend
+          cd frontend
           npm ci
           npm run lint
 
       - name: Lint Backend
         run: |
-          cd kit_projet/backend
+          cd backend
           npm ci
           npm run lint
 
       - name: Test Frontend
         run: |
-          cd kit_projet/frontend
+          cd frontend
           npm run test -- --coverage
 
       - name: Test Backend
         run: |
-          cd kit_projet/backend
+          cd backend
           npm run test -- --coverage
 
       # Ajoute ici les étapes pour l'analyse statique (CodeQL/SonarCloud)
@@ -36,12 +36,12 @@ jobs:
 
       - name: Build Frontend Docker Image
         run: |
-          cd kit_projet/frontend
+          cd frontend
           docker build -t <registry>/frontend:latest .
 
       - name: Build Backend Docker Image
         run: |
-          cd kit_projet/backend
+          cd backend
           docker build -t <registry>/backend:latest .
 
       # Ajoute ici les étapes de login et push vers le container registry
