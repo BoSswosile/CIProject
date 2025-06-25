@@ -237,7 +237,6 @@ jobs:
       github.event.inputs.confirm_production == 'DEPLOY'
     environment: 
       name: production
-      url: https://your-production-url.com
     
     steps:
       - name: Checkout code
