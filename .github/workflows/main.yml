@@ -15,6 +15,7 @@ on:
         options:
         - staging
         - production
+        - azure
       confirm_production:
         description: 'Type "DEPLOY" to confirm production deployment'
         required: false
@@ -169,7 +170,6 @@ jobs:
           wait-on: 'http://localhost:3000'
           wait-on-timeout: 120
           browser: chrome
-          headless: true
 
       - name: Upload Cypress Screenshots
         uses: actions/upload-artifact@v4
@@ -282,24 +282,101 @@ jobs:
           # Add your staging deployment commands here
           # For example, update Kubernetes manifests, Helm charts, etc.
 
+  deploy-azure:
+    name: Deploy to Azure Container Instances
+    runs-on: ubuntu-latest
+    needs: [build-and-push]
+    if: |
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'azure')
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login via Azure CLI
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Build and push Frontend image to Azure
+        uses: azure/docker-login@v1
+        with:
+          login-server: ${{ secrets.REGISTRY_LOGIN_SERVER }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+      
+      - name: Build and push Frontend Docker image to Azure Registry
+        run: |
+          docker build ./frontend -t ${{ secrets.REGISTRY_LOGIN_SERVER }}/frontend:${{ github.sha }}
+          docker push ${{ secrets.REGISTRY_LOGIN_SERVER }}/frontend:${{ github.sha }}
+
+      - name: Build and push Backend Docker image to Azure Registry
+        run: |
+          docker build ./backend -t ${{ secrets.REGISTRY_LOGIN_SERVER }}/backend:${{ github.sha }}
+          docker push ${{ secrets.REGISTRY_LOGIN_SERVER }}/backend:${{ github.sha }}
+
+      - name: Deploy Frontend to Azure Container Instances
+        uses: azure/aci-deploy@v1
+        with:
+          resource-group: ${{ secrets.RESOURCE_GROUP }}
+          dns-name-label: ${{ secrets.RESOURCE_GROUP }}-frontend-${{ github.run_number }}
+          image: ${{ secrets.REGISTRY_LOGIN_SERVER }}/frontend:${{ github.sha }}
+          registry-login-server: ${{ secrets.REGISTRY_LOGIN_SERVER }}
+          registry-username: ${{ secrets.REGISTRY_USERNAME }}
+          registry-password: ${{ secrets.REGISTRY_PASSWORD }}
+          name: aci-frontend
+          location: 'west europe'
+          ports: '80'
+          protocol: 'TCP'
+
+      - name: Deploy Backend to Azure Container Instances
+        uses: azure/aci-deploy@v1
+        with:
+          resource-group: ${{ secrets.RESOURCE_GROUP }}
+          dns-name-label: ${{ secrets.RESOURCE_GROUP }}-backend-${{ github.run_number }}
+          image: ${{ secrets.REGISTRY_LOGIN_SERVER }}/backend:${{ github.sha }}
+          registry-login-server: ${{ secrets.REGISTRY_LOGIN_SERVER }}
+          registry-username: ${{ secrets.REGISTRY_USERNAME }}
+          registry-password: ${{ secrets.REGISTRY_PASSWORD }}
+          name: aci-backend
+          location: 'west europe'
+          ports: '8000'
+          protocol: 'TCP'
+
   notify:
     name: Notify
     runs-on: ubuntu-latest
-    needs: [deploy-staging]
+    needs: [deploy-staging, deploy-azure]
     if: always()
     
     steps:
       - name: Notify Success
-        if: needs.deploy-staging.result == 'success'
+        if: |
+          (needs.deploy-staging.result == 'success') ||
+          (needs.deploy-azure.result == 'success')
         run: |
           echo "🎉 Deployment successful!"
-          echo "✅ Staging deployment completed successfully"
+          if [ "${{ needs.deploy-staging.result }}" == "success" ]; then
+            echo "✅ Staging deployment completed successfully"
+          fi
+          if [ "${{ needs.deploy-azure.result }}" == "success" ]; then
+            echo "✅ Azure deployment completed successfully"
+            echo "🌐 Frontend URL: https://${{ secrets.RESOURCE_GROUP }}-frontend-${{ github.run_number }}.westeurope.azurecontainer.io"
+            echo "🔧 Backend URL: https://${{ secrets.RESOURCE_GROUP }}-backend-${{ github.run_number }}.westeurope.azurecontainer.io"
+          fi
           echo "✅ E2E tests passed (ran before build)"
           # Add notification logic here (Slack, Teams, email, etc.)
 
       - name: Notify Deployment Failure
-        if: needs.deploy-staging.result == 'failure'
+        if: |
+          (needs.deploy-staging.result == 'failure') ||
+          (needs.deploy-azure.result == 'failure')
         run: |
           echo "❌ Deployment failed!"
-          echo "🔴 Staging deployment failed"
+          if [ "${{ needs.deploy-staging.result }}" == "failure" ]; then
+            echo "🔴 Staging deployment failed"
+          fi
+          if [ "${{ needs.deploy-azure.result }}" == "failure" ]; then
+            echo "🔴 Azure deployment failed"
+          fi
           # Add failure notification logic here
