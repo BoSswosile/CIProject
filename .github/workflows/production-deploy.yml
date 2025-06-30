@@ -1,4 +1,4 @@
-name: Manual Production and Staging Deployment
+name: Production and Staging Deployment
 
 on:
   workflow_dispatch:
@@ -63,9 +63,59 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Deploy to Production
+      - name: Login via Azure CLI
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Login to Production Azure Container Registry
+        uses: azure/docker-login@v1
+        with:
+          login-server: ${{ secrets.PROD_REGISTRY_LOGIN_SERVER }}
+          username: ${{ secrets.PROD_REGISTRY_USERNAME }}
+          password: ${{ secrets.PROD_REGISTRY_PASSWORD }}
+      
+      - name: Build and push Frontend Docker image to Production Registry
         run: |
-          echo "🚀 PRODUCTION DEPLOYMENT STARTING"
+          docker build ./frontend -t ${{ secrets.PROD_REGISTRY_LOGIN_SERVER }}/frontend:prod-${{ github.event.inputs.version_tag }}
+          docker push ${{ secrets.PROD_REGISTRY_LOGIN_SERVER }}/frontend:prod-${{ github.event.inputs.version_tag }}
+
+      - name: Build and push Backend Docker image to Production Registry
+        run: |
+          docker build ./backend -t ${{ secrets.PROD_REGISTRY_LOGIN_SERVER }}/backend:prod-${{ github.event.inputs.version_tag }}
+          docker push ${{ secrets.PROD_REGISTRY_LOGIN_SERVER }}/backend:prod-${{ github.event.inputs.version_tag }}
+
+      - name: Deploy Frontend to Production Container Instances
+        uses: azure/aci-deploy@v1
+        with:
+          resource-group: ${{ secrets.PROD_RESOURCE_GROUP }}
+          dns-name-label: ${{ secrets.PROD_RESOURCE_GROUP }}-frontend-prod
+          image: ${{ secrets.PROD_REGISTRY_LOGIN_SERVER }}/frontend:prod-${{ github.event.inputs.version_tag }}
+          registry-login-server: ${{ secrets.PROD_REGISTRY_LOGIN_SERVER }}
+          registry-username: ${{ secrets.PROD_REGISTRY_USERNAME }}
+          registry-password: ${{ secrets.PROD_REGISTRY_PASSWORD }}
+          name: aci-frontend-production
+          location: 'west europe'
+          ports: '80'
+          protocol: 'TCP'
+
+      - name: Deploy Backend to Production Container Instances
+        uses: azure/aci-deploy@v1
+        with:
+          resource-group: ${{ secrets.PROD_RESOURCE_GROUP }}
+          dns-name-label: ${{ secrets.PROD_RESOURCE_GROUP }}-backend-prod
+          image: ${{ secrets.PROD_REGISTRY_LOGIN_SERVER }}/backend:prod-${{ github.event.inputs.version_tag }}
+          registry-login-server: ${{ secrets.PROD_REGISTRY_LOGIN_SERVER }}
+          registry-username: ${{ secrets.PROD_REGISTRY_USERNAME }}
+          registry-password: ${{ secrets.PROD_REGISTRY_PASSWORD }}
+          name: aci-backend-production
+          location: 'west europe'
+          ports: '8000'
+          protocol: 'TCP'
+
+      - name: Production Deployment Summary
+        run: |
+          echo "🚀 PRODUCTION DEPLOYMENT COMPLETED"
           echo "====================================="
           echo "👤 Deployer: ${{ github.actor }}"
           echo "📝 Reason: ${{ github.event.inputs.reason }}"
@@ -73,14 +123,9 @@ jobs:
           echo "📅 Time: $(date)"
           echo "🌿 Branch: ${{ github.ref }}"
           echo "📋 Commit: ${{ github.sha }}"
+          echo "🌐 Frontend URL: https://${{ secrets.PROD_RESOURCE_GROUP }}-frontend-prod.westeurope.azurecontainer.io"
+          echo "🔧 Backend URL: https://${{ secrets.PROD_RESOURCE_GROUP }}-backend-prod.westeurope.azurecontainer.io"
           echo "====================================="
-          
-          # docker pull ghcr.io/${{ github.repository }}/frontend:${{ github.event.inputs.version_tag }}
-          # docker pull ghcr.io/${{ github.repository }}/backend:${{ github.event.inputs.version_tag }}
-          # kubectl set image deployment/frontend frontend=ghcr.io/${{ github.repository }}/frontend:${{ github.event.inputs.version_tag }}
-          # kubectl set image deployment/backend backend=ghcr.io/${{ github.repository }}/backend:${{ github.event.inputs.version_tag }}
-          
-          echo "✅ Production deployment completed successfully!"
 
   notify-deployment:
     name: Notify Deployment
@@ -96,13 +141,18 @@ jobs:
         run: |
           if [ "${{ needs.deploy-production.result }}" == "success" ]; then
             echo "🎉 PRODUCTION DEPLOYMENT SUCCESSFUL!"
+            echo "🌐 Production Frontend: https://${{ secrets.PROD_RESOURCE_GROUP }}-frontend-prod.westeurope.azurecontainer.io"
+            echo "🔧 Production Backend: https://${{ secrets.PROD_RESOURCE_GROUP }}-backend-prod.westeurope.azurecontainer.io"
           fi
           if [ "${{ needs.deploy-staging.result }}" == "success" ]; then
             echo "🎉 STAGING DEPLOYMENT SUCCESSFUL!"
+            echo "🌐 Staging Frontend: https://${{ secrets.STAGING_RESOURCE_GROUP }}-frontend-staging.westeurope.azurecontainer.io"
+            echo "🔧 Staging Backend: https://${{ secrets.STAGING_RESOURCE_GROUP }}-backend-staging.westeurope.azurecontainer.io"
           fi
           echo "👤 Deployed by: ${{ github.actor }}"
           echo "📝 Reason: ${{ github.event.inputs.reason }}"
           echo "🏷️ Version: ${{ github.event.inputs.version_tag }}"
+          echo "📅 Deployment Time: $(date)"
           # Add notification logic here (Slack, Teams, email, etc.)
 
       - name: Notify Failure
@@ -119,6 +169,7 @@ jobs:
           echo "👤 Attempted by: ${{ github.actor }}"
           echo "📝 Reason: ${{ github.event.inputs.reason }}"
           echo "🏷️ Version: ${{ github.event.inputs.version_tag }}"
+          echo "📅 Failed at: $(date)"
           # Add failure notification logic here
 
   deploy-staging:
@@ -132,14 +183,66 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Deploy to Staging Environment
+      - name: Login via Azure CLI
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Login to Staging Azure Container Registry
+        uses: azure/docker-login@v1
+        with:
+          login-server: ${{ secrets.STAGING_REGISTRY_LOGIN_SERVER }}
+          username: ${{ secrets.STAGING_REGISTRY_USERNAME }}
+          password: ${{ secrets.STAGING_REGISTRY_PASSWORD }}
+      
+      - name: Build and push Frontend Docker image to Staging Registry
         run: |
-          echo "🚀 Deploying to staging environment..."
-          echo "Branch: ${{ github.ref }}"
-          echo "Commit: ${{ github.sha }}"
-          echo "Trigger: ${{ github.event_name }}"
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            echo "Manual deployment by: ${{ github.actor }}"
-          fi
-          # Add your staging deployment commands here
-          # For example, update Kubernetes manifests, Helm charts, etc.
+          docker build ./frontend -t ${{ secrets.STAGING_REGISTRY_LOGIN_SERVER }}/frontend:staging-${{ github.event.inputs.version_tag }}
+          docker push ${{ secrets.STAGING_REGISTRY_LOGIN_SERVER }}/frontend:staging-${{ github.event.inputs.version_tag }}
+
+      - name: Build and push Backend Docker image to Staging Registry
+        run: |
+          docker build ./backend -t ${{ secrets.STAGING_REGISTRY_LOGIN_SERVER }}/backend:staging-${{ github.event.inputs.version_tag }}
+          docker push ${{ secrets.STAGING_REGISTRY_LOGIN_SERVER }}/backend:staging-${{ github.event.inputs.version_tag }}
+
+      - name: Deploy Frontend to Staging Container Instances
+        uses: azure/aci-deploy@v1
+        with:
+          resource-group: ${{ secrets.STAGING_RESOURCE_GROUP }}
+          dns-name-label: ${{ secrets.STAGING_RESOURCE_GROUP }}-frontend-staging
+          image: ${{ secrets.STAGING_REGISTRY_LOGIN_SERVER }}/frontend:staging-${{ github.event.inputs.version_tag }}
+          registry-login-server: ${{ secrets.STAGING_REGISTRY_LOGIN_SERVER }}
+          registry-username: ${{ secrets.STAGING_REGISTRY_USERNAME }}
+          registry-password: ${{ secrets.STAGING_REGISTRY_PASSWORD }}
+          name: aci-frontend-staging
+          location: 'west europe'
+          ports: '80'
+          protocol: 'TCP'
+
+      - name: Deploy Backend to Staging Container Instances
+        uses: azure/aci-deploy@v1
+        with:
+          resource-group: ${{ secrets.STAGING_RESOURCE_GROUP }}
+          dns-name-label: ${{ secrets.STAGING_RESOURCE_GROUP }}-backend-staging
+          image: ${{ secrets.STAGING_REGISTRY_LOGIN_SERVER }}/backend:staging-${{ github.event.inputs.version_tag }}
+          registry-login-server: ${{ secrets.STAGING_REGISTRY_LOGIN_SERVER }}
+          registry-username: ${{ secrets.STAGING_REGISTRY_USERNAME }}
+          registry-password: ${{ secrets.STAGING_REGISTRY_PASSWORD }}
+          name: aci-backend-staging
+          location: 'west europe'
+          ports: '8000'
+          protocol: 'TCP'
+
+      - name: Staging Deployment Summary
+        run: |
+          echo "🚀 STAGING DEPLOYMENT COMPLETED"
+          echo "====================================="
+          echo "👤 Deployer: ${{ github.actor }}"
+          echo "📝 Reason: ${{ github.event.inputs.reason }}"
+          echo "🏷️ Version: ${{ github.event.inputs.version_tag }}"
+          echo "📅 Time: $(date)"
+          echo "🌿 Branch: ${{ github.ref }}"
+          echo "📋 Commit: ${{ github.sha }}"
+          echo "🌐 Frontend URL: https://${{ secrets.STAGING_RESOURCE_GROUP }}-frontend-staging.westeurope.azurecontainer.io"
+          echo "🔧 Backend URL: https://${{ secrets.STAGING_RESOURCE_GROUP }}-backend-staging.westeurope.azurecontainer.io"
+          echo "====================================="
