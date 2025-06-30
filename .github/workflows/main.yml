@@ -259,9 +259,9 @@ jobs:
     name: Deploy to Azure Container Instances
     runs-on: ubuntu-latest
     needs: [build-and-push]
-    if: |
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'azure')
-    
+    if: 
+      (github.event_name == 'push' && github.ref == 'refs/heads/main')
+  
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
