@@ -89,7 +89,7 @@ jobs:
         uses: azure/aci-deploy@v1
         with:
           resource-group: ${{ secrets.RESOURCE_GROUP }}
-          dns-name-label: ${{ secrets.RESOURCE_GROUP }}-frontend-prod
+          dns-name-label: ${{ secrets.RESOURCE_GROUP }}-frontend-prod-${{ github.run_id }}
           image: ${{ secrets.REGISTRY_LOGIN_SERVER }}/frontend:prod-${{ github.event.inputs.version_tag }}
           registry-login-server: ${{ secrets.REGISTRY_LOGIN_SERVER }}
           registry-username: ${{ secrets.REGISTRY_USERNAME }}
@@ -103,7 +103,7 @@ jobs:
         uses: azure/aci-deploy@v1
         with:
           resource-group: ${{ secrets.RESOURCE_GROUP }}
-          dns-name-label: ${{ secrets.RESOURCE_GROUP }}-backend-prod
+          dns-name-label: ${{ secrets.RESOURCE_GROUP }}-backend-prod-${{ github.run_id }}
           image: ${{ secrets.REGISTRY_LOGIN_SERVER }}/backend:prod-${{ github.event.inputs.version_tag }}
           registry-login-server: ${{ secrets.REGISTRY_LOGIN_SERVER }}
           registry-username: ${{ secrets.REGISTRY_USERNAME }}
@@ -123,8 +123,8 @@ jobs:
           echo "📅 Time: $(date)"
           echo "🌿 Branch: ${{ github.ref }}"
           echo "📋 Commit: ${{ github.sha }}"
-          echo "🌐 Frontend URL: https://${{ secrets.RESOURCE_GROUP }}-frontend-prod.westeurope.azurecontainer.io"
-          echo "🔧 Backend URL: https://${{ secrets.RESOURCE_GROUP }}-backend-prod.westeurope.azurecontainer.io"
+          echo "🌐 Frontend URL: https://${{ secrets.RESOURCE_GROUP }}-frontend-prod-${{ github.run_id }}.westeurope.azurecontainer.io"
+          echo "🔧 Backend URL: https://${{ secrets.RESOURCE_GROUP }}-backend-prod-${{ github.run_id }}.westeurope.azurecontainer.io"
           echo "====================================="
 
   notify-deployment:
@@ -141,13 +141,13 @@ jobs:
         run: |
           if [ "${{ needs.deploy-production.result }}" == "success" ]; then
             echo "🎉 PRODUCTION DEPLOYMENT SUCCESSFUL!"
-            echo "🌐 Production Frontend: https://${{ secrets.RESOURCE_GROUP }}-frontend-prod.westeurope.azurecontainer.io"
-            echo "🔧 Production Backend: https://${{ secrets.RESOURCE_GROUP }}-backend-prod.westeurope.azurecontainer.io"
+            echo "🌐 Production Frontend: https://${{ secrets.RESOURCE_GROUP }}-frontend-prod-${{ github.run_id }}.westeurope.azurecontainer.io"
+            echo "🔧 Production Backend: https://${{ secrets.RESOURCE_GROUP }}-backend-prod-${{ github.run_id }}.westeurope.azurecontainer.io"
           fi
           if [ "${{ needs.deploy-staging.result }}" == "success" ]; then
             echo "🎉 STAGING DEPLOYMENT SUCCESSFUL!"
-            echo "🌐 Staging Frontend: https://${{ secrets.RESOURCE_GROUP }}-frontend-staging.westeurope.azurecontainer.io"
-            echo "🔧 Staging Backend: https://${{ secrets.RESOURCE_GROUP }}-backend-staging.westeurope.azurecontainer.io"
+            echo "🌐 Staging Frontend: https://${{ secrets.RESOURCE_GROUP }}-frontend-staging-${{ github.run_id }}.westeurope.azurecontainer.io"
+            echo "🔧 Staging Backend: https://${{ secrets.RESOURCE_GROUP }}-backend-staging-${{ github.run_id }}.westeurope.azurecontainer.io"
           fi
           echo "👤 Deployed by: ${{ github.actor }}"
           echo "📝 Reason: ${{ github.event.inputs.reason }}"
@@ -209,7 +209,7 @@ jobs:
         uses: azure/aci-deploy@v1
         with:
           resource-group: ${{ secrets.RESOURCE_GROUP }}
-          dns-name-label: ${{ secrets.RESOURCE_GROUP }}-frontend-staging
+          dns-name-label: ${{ secrets.RESOURCE_GROUP }}-frontend-staging-${{ github.run_id }}
           image: ${{ secrets.REGISTRY_LOGIN_SERVER }}/frontend:staging-${{ github.event.inputs.version_tag }}
           registry-login-server: ${{ secrets.REGISTRY_LOGIN_SERVER }}
           registry-username: ${{ secrets.REGISTRY_USERNAME }}
@@ -223,7 +223,7 @@ jobs:
         uses: azure/aci-deploy@v1
         with:
           resource-group: ${{ secrets.RESOURCE_GROUP }}
-          dns-name-label: ${{ secrets.RESOURCE_GROUP }}-backend-staging
+          dns-name-label: ${{ secrets.RESOURCE_GROUP }}-backend-staging-${{ github.run_id }}
           image: ${{ secrets.REGISTRY_LOGIN_SERVER }}/backend:staging-${{ github.event.inputs.version_tag }}
           registry-login-server: ${{ secrets.REGISTRY_LOGIN_SERVER }}
           registry-username: ${{ secrets.REGISTRY_USERNAME }}
@@ -243,6 +243,6 @@ jobs:
           echo "📅 Time: $(date)"
           echo "🌿 Branch: ${{ github.ref }}"
           echo "📋 Commit: ${{ github.sha }}"
-          echo "🌐 Frontend URL: https://${{ secrets.RESOURCE_GROUP }}-frontend-staging.westeurope.azurecontainer.io"
-          echo "🔧 Backend URL: https://${{ secrets.RESOURCE_GROUP }}-backend-staging.westeurope.azurecontainer.io"
+          echo "🌐 Frontend URL: https://${{ secrets.RESOURCE_GROUP }}-frontend-staging-${{ github.run_id }}.westeurope.azurecontainer.io"
+          echo "🔧 Backend URL: https://${{ secrets.RESOURCE_GROUP }}-backend-staging-${{ github.run_id }}.westeurope.azurecontainer.io"
           echo "====================================="
