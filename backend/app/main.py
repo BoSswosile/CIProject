@@ -1,7 +1,13 @@
 import os
 from typing import List
 
-import psycopg2
+try:
+    import psycopg2
+    DB_AVAILABLE = True
+except ImportError:
+    DB_AVAILABLE = False
+    print("Warning: psycopg2 not installed. Database features will be disabled.")
+
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
@@ -14,6 +20,8 @@ DB_PASSWORD = os.getenv("DB_PASSWORD", "postgres")
 
 
 def get_connection():
+    if not DB_AVAILABLE:
+        raise Exception("Database not available. Please install psycopg2-binary.")
     return psycopg2.connect(
         host=DB_HOST, dbname=DB_NAME, user=DB_USER, password=DB_PASSWORD
     )
@@ -25,8 +33,30 @@ class Employee(BaseModel):
     role: str
 
 
+@app.get("/")
+def read_root():
+    return {
+        "message": "Welcome to the Employee Management API",
+        "status": "running",
+        "endpoints": {
+            "employees": "/employees",
+            "add_employee": "/employees (POST)",
+            "docs": "/docs",
+            "redoc": "/redoc",
+        },
+    }
+
+
 @app.get("/employees", response_model=List[Employee])
 def get_employees():
+    if not DB_AVAILABLE:
+        # Return mock data when database is not available
+        return [
+            {"id": 1, "name": "John Doe", "role": "Software Engineer"},
+            {"id": 2, "name": "Jane Smith", "role": "Product Manager"},
+            {"id": 3, "name": "Bob Johnson", "role": "DevOps Engineer"}
+        ]
+    
     try:
         conn = get_connection()
         cur = conn.cursor()
@@ -41,6 +71,10 @@ def get_employees():
 
 @app.post("/employees", response_model=Employee)
 def add_employee(emp: Employee):
+    if not DB_AVAILABLE:
+        # Return the employee back when database is not available
+        return emp
+    
     try:
         conn = get_connection()
         cur = conn.cursor()
@@ -54,3 +88,19 @@ def add_employee(emp: Employee):
         return emp
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/health")
+def health_check():
+    if not DB_AVAILABLE:
+        return {"status": "healthy", "database": "not_available", "note": "Running in mock mode"}
+    
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT 1;")
+        cur.close()
+        conn.close()
+        return {"status": "healthy", "database": "connected"}
+    except Exception as e:
+        return {"status": "unhealthy", "database": "disconnected", "error": str(e)}
