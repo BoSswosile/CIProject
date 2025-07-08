@@ -96,7 +96,7 @@ jobs:
           registry-password: ${{ secrets.REGISTRY_PASSWORD }}
           name: aci-frontend-production
           location: 'west europe'
-          ports: '80'
+          ports: 3000'
           protocol: 'TCP'
 
       - name: Deploy Backend to Production Container Instances
@@ -216,7 +216,7 @@ jobs:
           registry-password: ${{ secrets.REGISTRY_PASSWORD }}
           name: aci-frontend-staging
           location: 'west europe'
-          ports: '80'
+          ports: '3000'
           protocol: 'TCP'
 
       - name: Deploy Backend to Staging Container Instances

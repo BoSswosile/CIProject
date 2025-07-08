@@ -308,7 +308,7 @@ jobs:
           registry-password: ${{ secrets.REGISTRY_PASSWORD }}
           name: aci-frontend
           location: 'west europe'
-          ports: '80'
+          ports: '3000'
           protocol: 'TCP'
 
       - name: Deploy Backend to Azure Container Instances
