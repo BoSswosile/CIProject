@@ -3,6 +3,7 @@ from typing import List
 
 try:
     import psycopg2
+
     DB_AVAILABLE = True
 except ImportError:
     DB_AVAILABLE = False
@@ -54,9 +55,8 @@ def get_employees():
         return [
             {"id": 1, "name": "John Doe", "role": "Software Engineer"},
             {"id": 2, "name": "Jane Smith", "role": "Product Manager"},
-            {"id": 3, "name": "Bob Johnson", "role": "DevOps Engineer"}
+            {"id": 3, "name": "Bob Johnson", "role": "DevOps Engineer"},
         ]
-    
     try:
         conn = get_connection()
         cur = conn.cursor()
@@ -74,7 +74,6 @@ def add_employee(emp: Employee):
     if not DB_AVAILABLE:
         # Return the employee back when database is not available
         return emp
-    
     try:
         conn = get_connection()
         cur = conn.cursor()
@@ -93,8 +92,12 @@ def add_employee(emp: Employee):
 @app.get("/health")
 def health_check():
     if not DB_AVAILABLE:
-        return {"status": "healthy", "database": "not_available", "note": "Running in mock mode"}
-    
+        return {
+            "status": "healthy",
+            "database": "not_available",
+            "note": "Running in mock mode",
+        }
+
     try:
         conn = get_connection()
         cur = conn.cursor()
